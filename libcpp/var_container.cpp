@@ -22,6 +22,8 @@ namespace var_container
     std::queue<var_con> *instance = nullptr;
     std::map<std::string, std::string> *var_maps = nullptr;
     std::map<std::string, std::string> *tmp_maps = nullptr;
+    std::map<std::string, std::string> *op_maps = nullptr;
+    
     std::string last_store_name = "";
     void init_instatce()
     {
@@ -30,6 +32,23 @@ namespace var_container
             var_container::instance = new std::queue<var_container::var_con>();
             var_container::var_maps = new std::map<std::string, std::string>();
             var_container::tmp_maps = new std::map<std::string, std::string>();
+            var_container::op_maps = new std::map<std::string, std::string>();
+        
+            (*op_maps)[">"] = "JG";
+            (*op_maps)["<"] = "JL";
+            (*op_maps)[">="] = "JGE";
+            (*op_maps)["<="] = "JLE";
+            (*op_maps)["!="] = "JNE";
+            (*op_maps)[""] = "J";
+            (*op_maps)["=="] = "JE";
+
+            (*op_maps)["INV>"] = "JLE";
+            (*op_maps)["INV<"] = "JGE";
+            (*op_maps)["INV>="] = "JL";
+            (*op_maps)["INV<="] = "JG";
+            (*op_maps)["INV!="] = "JE";
+            (*op_maps)["INV=="] = "JNE";
+
         }
     }
 } // namespace var_container
@@ -184,4 +203,12 @@ char* calc_ops(char *var0, char *var1, CALC_OPS op)
 char* get_last_store()
 {
     return strdup(var_container::last_store_name.c_str());
+}
+char *jmp_ops(char *op, char *dst)
+{
+    return strdup(((*var_container::op_maps)[op]+" "+dst).c_str());
+}
+char *jmp_inv(char *op, char *dst)
+{
+    return strdup(((*var_container::op_maps)[std::string("INV")+op]+" "+dst).c_str());
 }

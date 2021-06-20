@@ -28,6 +28,10 @@ extern "C"
     void push_for(char *init, char *inc);
     char** pop_for();
 
+    char* create_label();
+    char *jmp_ops(char *op, char *dst);
+    char *jmp_inv(char *op, char *dst);
+
 #ifdef __cplusplus
 }
 #endif

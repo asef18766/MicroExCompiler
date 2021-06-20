@@ -9,9 +9,17 @@
                 printf("Error: %s encountered at line number:%d\n", msg, linecounter);
         }
 %}
+%code requires {
+    struct cmp_ops {
+        char *op;
+        char *init;
+    };
+}
 %union {
     char *string;
+    struct cmp_ops ops;
 }
+
 %define parse.error verbose
 %token TOKEN_BEGIN
 %token TOKEN_END
@@ -71,6 +79,8 @@
 %type <string> declare_statement
 %type <string> for_statement
 %type <string> assignment_statement
+%type <string> if_statement
+%type <string> function_statement
 
 %type <string> cal_unit
 %type <string> calculation
@@ -78,16 +88,26 @@
 %type <string> TOKEN_FLOAT_LIT
 %type <string> TOKEN_INT_LIT
 
-
+%type <string> arguments
 %type <string> assignment
+%type <ops> comparison
 %type <string> for_init
+%type <string> com_ops
+
+%type <string> TOKEN_GT
+%type <string> TOKEN_LT
+%type <string> TOKEN_GE
+%type <string> TOKEN_LE
+%type <string> TOKEN_NE
+%type <string> TOKEN_EQ
+
+
 %left TOKEN_PLUS TOKEN_MINUS
 %right TOKEN_MUL TOKEN_DIV
 %nonassoc UMINUS
 
 %%
 program:        TOKEN_PROGRAM TOKEN_ID TOKEN_BEGIN statement_list  TOKEN_END <<EOF>> {
-        printf("got program~~\n");
         printf("START %s\n%sHALT %s\n", $2, $4, $2);
 }
 ;
@@ -104,6 +124,8 @@ statement_list: statement statement_list {
 statement: declare_statement {$$=$1;}
         |  for_statement {$$=$1;}
         |  assignment_statement {$$=$1;}
+        |  if_statement {$$=$1;}
+        |  function_statement {$$=$1;}
 ;
 declare_statement: TOKEN_DECLARE variables TOKEN_AS var_types TOKEN_SEMICLON { 
         $$ = gen_var_code($4);
@@ -118,9 +140,7 @@ variables:      variable TOKEN_COMMA variables
 variable:       TOKEN_ID    { insert_var($1); }
         |       TOKEN_ARRAY { insert_array($1); }
 ;
-
 for_statement:  TOKEN_FOR TOKEN_LP for_init TOKEN_RP statement_list TOKEN_ENDFOR {
-        printf("detected for statement\n");
         char **st = pop_for();
         int sz = strlen(st[1])+ \
                  strlen(st[0])+ \
@@ -137,7 +157,6 @@ for_statement:  TOKEN_FOR TOKEN_LP for_init TOKEN_RP statement_list TOKEN_ENDFOR
 }
 ;
 for_init: assignment TOKEN_TO TOKEN_INT_LIT {
-        printf("detected for init\n");
         char* ptr_name = get_last_store();
         calc_ops(ptr_name, NULL, INC);
         calc_ops(ptr_name, $3, CMP);
@@ -149,12 +168,11 @@ for_init: assignment TOKEN_TO TOKEN_INT_LIT {
 }
 ;
 assignment:TOKEN_ID TOKEN_ASSIGN calculation {
-        printf("detected assignment\n");
         calc_ops($1, $3, STORE);
         $$ = dump_statements();
 }
+;
 assignment_statement:assignment TOKEN_SEMICLON {
-        printf("detected assignment statement\n");
         $$ = $1;
 }
 ;
@@ -179,4 +197,76 @@ cal_unit: TOKEN_ID {$$=$1;}
         | TOKEN_ARRAY {$$=$1;}
         | TOKEN_INT_LIT {$$=$1;}
         | TOKEN_FLOAT_LIT {$$=$1;}
+;
+if_statement: TOKEN_IF TOKEN_LP comparison TOKEN_RP TOKEN_THEN statement_list TOKEN_ENDIF {
+                //asdasd
+                printf("short if~~\n");
+        }
+            | TOKEN_IF TOKEN_LP comparison TOKEN_RP TOKEN_THEN statement_list TOKEN_ELSE statement_list TOKEN_ENDIF {                
+                char *lab_f = create_label();
+                char *lab_e = create_label();
+                char cmp[8787];
+                char cmp2[8787];
+                sprintf(cmp, "%s\n", jmp_inv($3.op, lab_f));
+                sprintf(cmp2, "%s\n", jmp_ops("", lab_e));
+                
+                char res[48763];
+                memset(res, 0, 48763);
+
+                strcat(res, $3.init);
+                strcat(res, cmp);
+                strcat(res, $6);
+                strcat(res, cmp2);
+                strcat(res, lab_f);
+                strcat(res, ":");
+                strcat(res, $8);
+                strcat(res, lab_e);
+                strcat(res, ":");
+                
+                $$=strdup(res);
+        }
+;
+comparison: calculation com_ops calculation {
+        calc_ops($1, $3, CMP);
+        $$.op = strdup($2);
+        $$.init = dump_statements();
+}
+;
+com_ops: TOKEN_LT {$$=$1;}
+       | TOKEN_GT {$$=$1;}
+       | TOKEN_LE {$$=$1;}
+       | TOKEN_GE {$$=$1;}
+       | TOKEN_NE {$$=$1;}
+       | TOKEN_EQ {$$=$1;}
+;
+function_statement: TOKEN_ID TOKEN_LP arguments TOKEN_RP TOKEN_SEMICLON
+{
+        char* st= dump_statements();
+        char* res = malloc(
+                strlen(st)+\
+                strlen("CALL ")+\
+                strlen($1)+\
+                strlen(",")+\
+                strlen($3)+\
+                strlen("\n"));
+        strcat(res, st);
+        strcat(res, "CALL ");
+        strcat(res, $1);
+        strcat(res, ",");
+        strcat(res, $3);
+        strcat(res, "\n");
+        $$=res;
+}
+;
+arguments: calculation TOKEN_COMMA arguments
+{
+        int slen = strlen($1)+strlen($3)+2;
+        char* res = malloc(slen);
+        memset(res, 0, slen);
+        strcat(res, $1);
+        strcat(res, ",");
+        strcat(res, $3);
+        $$=res;
+}
+|          calculation {$$=$1;}
 ;

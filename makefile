@@ -9,4 +9,4 @@ clean:
 	cd libcpp && make clean && cd ..
 	rm -f y.tab.* lex.yy.c parser
 test: clean all
-	cat test_data/3.mco | ./parser
+	python3 tester.py

@@ -30,12 +30,12 @@ WRITE {return TOKEN_WRITE;}
 - {return TOKEN_MINUS;}
 \* {return TOKEN_MUL;}
 \/ {return TOKEN_DIV;}
-!= {return TOKEN_NE;}
-> {return TOKEN_GT;}
-\< {return TOKEN_LT;}
->= {return TOKEN_GE;}
-\<= {return TOKEN_LE;}
-== {return TOKEN_EQ;}
+!= {yylval.string = strdup(yytext);return TOKEN_NE;}
+> {yylval.string = strdup(yytext);return TOKEN_GT;}
+\< {yylval.string = strdup(yytext);return TOKEN_LT;}
+>= {yylval.string = strdup(yytext);return TOKEN_GE;}
+\<= {yylval.string = strdup(yytext);return TOKEN_LE;}
+== {yylval.string = strdup(yytext);return TOKEN_EQ;}
 IF {return TOKEN_IF;}
 THEN {return TOKEN_THEN;}
 ELSE {return TOKEN_ELSE;}

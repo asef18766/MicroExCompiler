@@ -73,3 +73,9 @@ char** pop_for()
 
     return arr;
 }
+char* create_label()
+{
+    char buf[87] = {0};
+    sprintf(buf, "lb&%d", get_label());
+    return strdup(buf);
+}
